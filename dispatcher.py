@@ -5,24 +5,24 @@ import time
 from datetime import datetime, date, timedelta
 import threading
 
-class DispacherUtils ():
+class DispatcherUtils ():
     
     def __init__(self):
         self.schedules = None
         self.data = None
-        self.schedules_sent = []
         self.scheduler = sched.scheduler(time.time, time.sleep)
 
 
-    def print_mission(self, programacion, start):
+    def send_mission(self, programacion, start):
         id_programacion = programacion.get('id')
         mission = programacion.get('mision')
         drone = programacion.get('drone')
         priority = programacion.get('prioridad')
         now = time.time()
         elapsed = int(now - start)
-        print('PROGRAMACION # {} : {} elapsed={} mission={} drone={} prioridad={}'. format(id_programacion, time.ctime(now), elapsed, mission, drone, priority))
-
+        message = 'PROGRAMACION # {} : {} elapsed={} mission={} drone={} prioridad={}'. format(id_programacion, time.ctime(now), elapsed, mission, drone, priority)
+        print(message)
+        return message
 
     def data_is_valid(self):
         return True
@@ -56,7 +56,7 @@ class DispacherUtils ():
 
                 #FECHA ACTUAL Y HORA ACTUAL <<<DENTRO>>> DEL INTERVALO DE LA PROGRAMACION
                 if (fecha_inicial <= fecha_actual <= fecha_final) & (hora_inicial <= hora_actual <= hora_final):
-                    self.scheduler.enterabs(now, prioridad, self.print_mission, (schedule, start))
+                    self.scheduler.enterabs(now, prioridad, self.send_mission, (schedule, start))
 
                 #FECHA ACTUAL <<<DENTRO>>> DEL INTERVALO Y HORA ACTUAL <<<DESPUES>>> DEL INTERVALO DE LA PROGRAMACION
                 elif (fecha_inicial <= fecha_actual <= fecha_final) & (hora_actual > hora_final):
@@ -72,7 +72,7 @@ class DispacherUtils ():
                         future_date_in_seconds = future_date.timestamp()
                         delay = future_date_in_seconds - start
                         print("DELAY DE LA PROGRAMACION {} : {}". format(id_programacion, delay))
-                        self.scheduler.enterabs(now+delay, prioridad, self.print_mission, (schedule, start))
+                        self.scheduler.enterabs(now+delay, prioridad, self.send_mission, (schedule, start))
 
                 #FECHA ACTUAL <<<DENTRO>>> DEL INTERVALO Y HORA ACTUAL <<<ANTES>>> DEL INTERVALO DE LA PROGRAMACION
                 elif (fecha_inicial <= fecha_actual <= fecha_final) & (hora_actual < hora_final):
@@ -83,7 +83,7 @@ class DispacherUtils ():
                     future_date_in_seconds = future_date.timestamp()
                     delay = future_date_in_seconds - start
                     print("DELAY DE LA PROGRAMACION {} : {}". format(id_programacion, delay))
-                    self.scheduler.enterabs(now+delay, prioridad, self.print_mission, (schedule, start))
+                    self.scheduler.enterabs(now+delay, prioridad, self.send_mission, (schedule, start))
 
                 #FECHA ACTUAL <<<ANTES>>> DEL INTERVALO DE LA PROGRAMACION
                 elif (fecha_actual < fecha_inicial):
@@ -93,7 +93,7 @@ class DispacherUtils ():
                     future_date_in_seconds = future_date.timestamp()
                     delay = future_date_in_seconds - start
                     print("DELAY DE LA PROGRAMACION {} : {}". format(id_programacion, delay))
-                    self.scheduler.enterabs(now+delay, prioridad, self.print_mission, (schedule, start))
+                    self.scheduler.enterabs(now+delay, prioridad, self.send_mission, (schedule, start))
 
                 #FECHA ACTUAL <<<DESPUES>>> DEL INTERVALO DE LA PROGRAMACION
                 elif (fecha_actual > fecha_final):
@@ -134,7 +134,7 @@ class DispacherUtils ():
                             self.scheduler.cancel(event)
                         except ValueError:
                             pass
-                    next_mission = self.scheduler.enterabs(now, prioridad, self.print_mission, (schedule, start))
+                    next_mission = self.scheduler.enterabs(now, prioridad, self.send_mission, (schedule, start))
                     break
                 else:
                     pass
@@ -148,7 +148,7 @@ class DispacherUtils ():
             print("NO SCHEDULED MISSIONS")
 
         
-dispacher_utils = DispacherUtils()
+dispacher_utils = DispatcherUtils()
 
 app = Flask(__name__)
 
@@ -182,8 +182,6 @@ def next_mission():
             
             print ('################## RECALCULANDO ################')
             dispacher_utils.next_mission()
-            #mission_thread = threading.Thread(name='next_mission', target=dispacher_utils.next_mission)
-            #mission_thread.start()
 
             status_code = Response(status=200)
 
